@@ -21,10 +21,13 @@ module Paperclip
 
       def flush_writes
         @queued_for_write.each do |style, file|
-          unless exists?(style)
+          if !exists?(style)
             obj = swift_client.create_object(path(style), {:content_type => instance_read(:content_type)}, file)
+          elsif @swift_options[:overwrite_attachments]
+            obj = swift_client.object(path(style))
+            obj.write(file)
           else
-            raise FileExists, "file '#{style}' already exists in Swift"
+            raise FileExists, "file '#{style}' already exists in Swift. To overwrite attachments set swift_options[:overwrite_attachments] param to true."
           end
         end
         after_flush_writes
